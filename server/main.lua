@@ -94,12 +94,12 @@ end
 
 
 -- Check time restrictions
-local function checkTimeRestrictions()
+
+local function checkTimeRestrictions(currentHour)
     if not Config.TimeRestrictions.enabled then
         return true
     end
 
-    local currentHour = tonumber(os.date("%H"))
     local startHour = Config.TimeRestrictions.startHour
     local endHour = Config.TimeRestrictions.endHour
 
@@ -109,6 +109,22 @@ local function checkTimeRestrictions()
         return currentHour >= startHour and currentHour <= endHour
     end
 end
+
+-- local function checkTimeRestrictions()
+--     if not Config.TimeRestrictions.enabled then
+--         return true
+--     end
+
+--     local currentHour = tonumber(os.date("%H"))
+--     local startHour = Config.TimeRestrictions.startHour
+--     local endHour = Config.TimeRestrictions.endHour
+
+--     if startHour > endHour then
+--         return currentHour >= startHour or currentHour <= endHour
+--     else
+--         return currentHour >= startHour and currentHour <= endHour
+--     end
+-- end
 
 -- Get player money
 local function getPlayerMoney(source, moneyType)
@@ -176,28 +192,32 @@ local function sendWebhook(playerName, citizenid, items, totalCost)
     PerformHttpRequest(Config.Webhook.url, function(err, text, headers) end, "POST", json.encode({ embeds = embed }), { ["Content-Type"] = "application/json" })
 end
 
-
-RegisterNetEvent("nu-blackmarket:server:requestOpenUI", function()
+RegisterNetEvent("nu-blackmarket:checkAccess", function(inGameHour)
     local src = source
-    local Player = exports.qbx_core:GetPlayer(src)
-    if not Player then return end
+    local Player = exports.qbx_core:GetPlayer(src) -- QBX Core player retrieval
+    if not Player then
+        TriggerClientEvent("nu-blackmarket:client:openUIDenied", src, "Player not found")
+        return
+    end
 
+    -- Time check: pass the inGameHour to your time check function (you need to adjust it to accept parameter)
+    if not checkTimeRestrictions(inGameHour) then
+        TriggerClientEvent("nu-blackmarket:client:openUIDenied", src, "Black Market is closed right now.")
+        return
+    end
+
+    -- Job check
     -- Check job restrictions
     if not checkJobRestrictions(src) then
-        TriggerClientEvent("nu-blackmarket:client:openUIDenied", src, "Access denied due to job restrictions")
+        TriggerClientEvent("nu-blackmarket:client:openUIDenied", src, "Nah Piggy, i smelt you a mile away! Get outta 'ere or ill call Diddy!")
         return
     end
-
-    -- Check time restrictions
-    if not checkTimeRestrictions() then
-        TriggerClientEvent("nu-blackmarket:client:openUIDenied", src, "Black market is closed at this time")
-        return
-    end
-
+    
+    -- Ticket check
     if Config.Ticket.enabled then
         local itemCount = exports.ox_inventory:GetItemCount(src, Config.Ticket.itemName)
         if not itemCount or itemCount < 1 then
-            TriggerClientEvent("nu-blackmarket:client:openUIDenied", src, "You need a black market ticket to access.")
+            TriggerClientEvent("nu-blackmarket:client:openUIDenied", src, "Ey man,  Wheres the Item you were supposed to bring? Dont come back till you have it! k?")
             return
         end
 
@@ -205,27 +225,45 @@ RegisterNetEvent("nu-blackmarket:server:requestOpenUI", function()
             exports.ox_inventory:RemoveItem(src, Config.Ticket.itemName, 1)
         end
     end
-    -- Passed all checks, allow UI open
+    -- All checks passed: open the UI
     TriggerClientEvent("nu-blackmarket:client:openUIAllowed", src)
 end)
+
+
 
 -- RegisterNetEvent("nu-blackmarket:server:requestOpenUI", function()
 --     local src = source
 --     local Player = exports.qbx_core:GetPlayer(src)
 --     if not Player then return end
 
+--     -- Check job restrictions
 --     if not checkJobRestrictions(src) then
---         TriggerClientEvent("nu-blackmarket:client:openUIDenied", src, "Access denied due to job restrictions")
+--         TriggerClientEvent("nu-blackmarket:client:openUIDenied", src, "Nah Piggy, i smelt you a mile away! Get outta 'ere or ill call Diddy!")
 --         return
 --     end
 
+--     -- Check time restrictions
 --     if not checkTimeRestrictions() then
---         TriggerClientEvent("nu-blackmarket:client:openUIDenied", src, "Black market is closed at this time")
+--         TriggerClientEvent("nu-blackmarket:client:openUIDenied", src, "Dont you see im closed? Get outta here foo!")
 --         return
 --     end
 
+    -- if Config.Ticket.enabled then
+    --     local itemCount = exports.ox_inventory:GetItemCount(src, Config.Ticket.itemName)
+    --     if not itemCount or itemCount < 1 then
+    --         TriggerClientEvent("nu-blackmarket:client:openUIDenied", src, "Ey man,  Wheres the Item you were supposed to bring? Dont come back till you have it! k?")
+    --         return
+    --     end
+
+    --  if Config.Ticket.removeOnUse then
+    --         exports.ox_inventory:RemoveItem(src, Config.Ticket.itemName, 1)
+    --     end
+    -- end
+--     -- Passed all checks, allow UI open
 --     TriggerClientEvent("nu-blackmarket:client:openUIAllowed", src)
 -- end)
+
+
 
 RegisterNetEvent("nu-blackmarket:server:getStock", function()
     local src = source
