@@ -28,6 +28,12 @@ Config.Currency = {
     removeType = "remove" -- "remove" for cash/bank, "removeItem" for items
 }
 
+
+Config.Ticket = {
+    enabled = true,           -- Enable ticket system or not
+    itemName = "blackmkticket", -- Name of the required ticket item
+    removeOnUse = true         -- Remove ticket on UI open or purchase
+}
 -- UI Configuration
 Config.UI = {
     title = "Black Market",
@@ -230,7 +236,7 @@ Config.Items = {
 -- Job Restrictions (optional - leave empty table {} to allow all players)
 Config.JobRestrictions = {
     -- Example: only allow certain jobs to access the black market
-    -- "police", -- This would BLOCK police from accessing
+    "police", -- This would BLOCK police from accessing
     -- Add job names to block them from accessing the black market
 }
 
